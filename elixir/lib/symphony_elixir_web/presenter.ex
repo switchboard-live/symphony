@@ -98,6 +98,7 @@ defmodule SymphonyElixirWeb.Presenter do
     %{
       issue_id: entry.issue_id,
       issue_identifier: entry.identifier,
+      issue_url: Map.get(entry, :issue_url),
       state: entry.state,
       session_id: entry.session_id,
       turn_count: Map.get(entry, :turn_count, 0),
@@ -117,6 +118,7 @@ defmodule SymphonyElixirWeb.Presenter do
     %{
       issue_id: entry.issue_id,
       issue_identifier: entry.identifier,
+      issue_url: Map.get(entry, :issue_url),
       attempt: entry.attempt,
       due_at: due_at_iso8601(entry.due_in_ms),
       error: entry.error

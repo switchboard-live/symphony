@@ -347,6 +347,7 @@ defmodule SymphonyElixir.ExtensionsTest do
                %{
                  "issue_id" => "issue-http",
                  "issue_identifier" => "MT-HTTP",
+                 "issue_url" => "https://linear.app/example/issue/MT-HTTP/demo-http",
                  "state" => "In Progress",
                  "session_id" => "thread-http",
                  "turn_count" => 7,
@@ -361,6 +362,7 @@ defmodule SymphonyElixir.ExtensionsTest do
                %{
                  "issue_id" => "issue-retry",
                  "issue_identifier" => "MT-RETRY",
+                 "issue_url" => "https://linear.app/example/issue/MT-RETRY/demo-retry",
                  "attempt" => 2,
                  "due_at" => state_payload["retrying"] |> List.first() |> Map.fetch!("due_at"),
                  "error" => "boom"
@@ -545,12 +547,15 @@ defmodule SymphonyElixir.ExtensionsTest do
     refute html =~ "Transport"
     assert html =~ "status-badge-live"
     assert html =~ "status-badge-offline"
+    assert html =~ ~s(href="https://linear.app/example/issue/MT-HTTP/demo-http")
+    assert html =~ ~s(href="https://linear.app/example/issue/MT-RETRY/demo-retry")
 
     updated_snapshot =
       put_in(snapshot.running, [
         %{
           issue_id: "issue-http",
           identifier: "MT-HTTP",
+          issue_url: "https://linear.app/example/issue/MT-HTTP/demo-http",
           state: "In Progress",
           session_id: "thread-http",
           turn_count: 8,
@@ -680,6 +685,7 @@ defmodule SymphonyElixir.ExtensionsTest do
         %{
           issue_id: "issue-http",
           identifier: "MT-HTTP",
+          issue_url: "https://linear.app/example/issue/MT-HTTP/demo-http",
           state: "In Progress",
           session_id: "thread-http",
           turn_count: 7,
@@ -697,6 +703,7 @@ defmodule SymphonyElixir.ExtensionsTest do
         %{
           issue_id: "issue-retry",
           identifier: "MT-RETRY",
+          issue_url: "https://linear.app/example/issue/MT-RETRY/demo-retry",
           attempt: 2,
           due_in_ms: 2_000,
           error: "boom"
