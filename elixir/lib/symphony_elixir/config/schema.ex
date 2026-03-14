@@ -100,6 +100,24 @@ defmodule SymphonyElixir.Config.Schema do
     end
   end
 
+  defmodule Repo do
+    @moduledoc false
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key false
+    embedded_schema do
+      field(:name, :string)
+      field(:url, :string)
+    end
+
+    @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
+    def changeset(schema, attrs) do
+      schema
+      |> cast(attrs, [:name, :url], empty_values: [])
+    end
+  end
+
   defmodule Agent do
     @moduledoc false
     use Ecto.Schema
@@ -246,6 +264,7 @@ defmodule SymphonyElixir.Config.Schema do
     embeds_one(:tracker, Tracker, on_replace: :update, defaults_to_struct: true)
     embeds_one(:polling, Polling, on_replace: :update, defaults_to_struct: true)
     embeds_one(:workspace, Workspace, on_replace: :update, defaults_to_struct: true)
+    embeds_one(:repo, Repo, on_replace: :update, defaults_to_struct: true)
     embeds_one(:agent, Agent, on_replace: :update, defaults_to_struct: true)
     embeds_one(:codex, Codex, on_replace: :update, defaults_to_struct: true)
     embeds_one(:hooks, Hooks, on_replace: :update, defaults_to_struct: true)
@@ -332,6 +351,7 @@ defmodule SymphonyElixir.Config.Schema do
     |> cast_embed(:tracker, with: &Tracker.changeset/2)
     |> cast_embed(:polling, with: &Polling.changeset/2)
     |> cast_embed(:workspace, with: &Workspace.changeset/2)
+    |> cast_embed(:repo, with: &Repo.changeset/2)
     |> cast_embed(:agent, with: &Agent.changeset/2)
     |> cast_embed(:codex, with: &Codex.changeset/2)
     |> cast_embed(:hooks, with: &Hooks.changeset/2)
@@ -351,13 +371,15 @@ defmodule SymphonyElixir.Config.Schema do
       | root: resolve_path_value(settings.workspace.root, Path.join(System.tmp_dir!(), "symphony_workspaces"))
     }
 
+    repo = finalize_repo(settings.repo, settings.hooks)
+
     codex = %{
       settings.codex
       | approval_policy: normalize_keys(settings.codex.approval_policy),
         turn_sandbox_policy: normalize_optional_map(settings.codex.turn_sandbox_policy)
     }
 
-    %{settings | tracker: tracker, workspace: workspace, codex: codex}
+    %{settings | tracker: tracker, workspace: workspace, repo: repo, codex: codex}
   end
 
   defp normalize_keys(value) when is_map(value) do
@@ -452,6 +474,63 @@ defmodule SymphonyElixir.Config.Schema do
   end
 
   defp normalize_secret_value(_value), do: nil
+
+  defp resolve_optional_string_setting(nil), do: nil
+
+  defp resolve_optional_string_setting(value) when is_binary(value) do
+    case resolve_env_value(value, nil) do
+      resolved when is_binary(resolved) -> normalize_optional_string(resolved)
+      _ -> nil
+    end
+  end
+
+  defp finalize_repo(repo, hooks) do
+    explicit_name = resolve_optional_string_setting(repo.name)
+    explicit_url = resolve_optional_string_setting(repo.url)
+    inferred_url = explicit_url || infer_repo_url_from_hook(hooks.after_create)
+
+    %{
+      repo
+      | name: explicit_name || infer_repo_name(explicit_url || inferred_url),
+        url: explicit_url || inferred_url
+    }
+  end
+
+  defp normalize_optional_string(value) when is_binary(value) do
+    value
+    |> String.trim()
+    |> case do
+      "" -> nil
+      normalized -> normalized
+    end
+  end
+
+  defp infer_repo_url_from_hook(hook) when is_binary(hook) do
+    case Regex.named_captures(
+           ~r/git\s+clone(?:\s+--[^\s]+(?:\s+[^\s]+)?)*\s+(?<url>(?:https?:\/\/|ssh:\/\/|git@)[^\s"']+)/,
+           hook
+         ) do
+      %{"url" => url} -> normalize_optional_string(url)
+      _ -> nil
+    end
+  end
+
+  defp infer_repo_url_from_hook(_hook), do: nil
+
+  defp infer_repo_name(url) when is_binary(url) do
+    cleaned_url =
+      url
+      |> String.trim()
+      |> String.trim_trailing("/")
+      |> String.trim_trailing(".git")
+
+    case Regex.run(~r{[:/](?<owner>[^/:]+)/(?<repo>[^/]+)$}, cleaned_url, capture: :all_names) do
+      [owner, repo_name] -> owner <> "/" <> repo_name
+      _ -> nil
+    end
+  end
+
+  defp infer_repo_name(_url), do: nil
 
   defp default_turn_sandbox_policy(workspace) do
     writable_root =

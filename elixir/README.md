@@ -65,6 +65,10 @@ mise exec -- mix build
 mise exec -- ./bin/symphony ./WORKFLOW.md
 ```
 
+When running from this source checkout, `./bin/symphony` now fails fast if the escript is older
+than tracked local inputs such as `mix.exs`, `mix.lock`, `config/`, `lib/`, or `priv/`. After
+pulling or editing code, rerun `mise exec -- mix build` before restarting Symphony.
+
 ## Configuration
 
 Pass a custom workflow file path to `./bin/symphony` when starting the service:
@@ -92,6 +96,9 @@ tracker:
   project_slug: "..."
 workspace:
   root: ~/code/workspaces
+repo:
+  name: "your-org/your-repo"
+  url: "https://github.com/your-org/your-repo"
 hooks:
   after_create: |
     git clone git@github.com:your-org/your-repo.git .
@@ -123,6 +130,9 @@ Notes:
   invocation when a turn completes normally but the issue is still in an active state. Default: `20`.
 - If the Markdown body is blank, Symphony uses a default prompt template that includes the issue
   identifier, title, and body.
+- `repo.name` and `repo.url` are used by the observability dashboard to show which repository a
+  runner is attached to. If omitted, Symphony tries to infer them from the first `git clone ...`
+  URL in `hooks.after_create`.
 - Use `hooks.after_create` to bootstrap a fresh workspace. For a Git-backed repo, you can run
   `git clone ... .` there, along with any other setup commands you need.
 - If a hook needs `mise exec` inside a freshly cloned workspace, trust the repo config and fetch
@@ -138,6 +148,9 @@ tracker:
   api_key: $LINEAR_API_KEY
 workspace:
   root: $SYMPHONY_WORKSPACE_ROOT
+repo:
+  name: "your-org/your-repo"
+  url: "$SOURCE_REPO_URL"
 hooks:
   after_create: |
     git clone --depth 1 "$SOURCE_REPO_URL" .

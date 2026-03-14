@@ -50,6 +50,25 @@ defmodule SymphonyElixirWeb.DashboardLive do
             <h1 class="hero-title">
               Operations Dashboard
             </h1>
+            <div class="hero-meta">
+              <span class="hero-meta-label">Runner repo</span>
+              <%= if repo_name = repo_name(@payload) do %>
+                <%= if repo_url = repo_url(@payload) do %>
+                  <a
+                    class="hero-chip"
+                    href={repo_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <%= repo_name %>
+                  </a>
+                <% else %>
+                  <span class="hero-chip"><%= repo_name %></span>
+                <% end %>
+              <% else %>
+                <span class="hero-chip hero-chip-muted">Not configured</span>
+              <% end %>
+            </div>
             <p class="hero-copy">
               Current state, retry pressure, token usage, and orchestration health for the active Symphony runtime.
             </p>
@@ -349,4 +368,10 @@ defmodule SymphonyElixirWeb.DashboardLive do
 
   defp pretty_value(nil), do: "n/a"
   defp pretty_value(value), do: inspect(value, pretty: true, limit: :infinity)
+
+  defp repo_name(payload) when is_map(payload), do: get_in(payload, [:repo, :name])
+  defp repo_name(_payload), do: nil
+
+  defp repo_url(payload) when is_map(payload), do: get_in(payload, [:repo, :url])
+  defp repo_url(_payload), do: nil
 end

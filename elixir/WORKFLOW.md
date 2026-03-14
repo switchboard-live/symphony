@@ -17,6 +17,9 @@ polling:
   interval_ms: 5000
 workspace:
   root: ~/code/symphony-workspaces
+repo:
+  name: "openai/symphony"
+  url: "https://github.com/openai/symphony"
 hooks:
   after_create: |
     git clone --depth 1 https://github.com/openai/symphony .

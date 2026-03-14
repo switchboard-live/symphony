@@ -184,6 +184,41 @@ pre,
   font-size: 1rem;
 }
 
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.hero-meta-label {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 163, 127, 0.18);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.hero-chip-muted {
+  border-color: var(--line);
+  background: var(--card-muted);
+  color: var(--muted);
+}
+
 .status-stack {
   display: grid;
   justify-items: end;

@@ -342,6 +342,7 @@ defmodule SymphonyElixir.ExtensionsTest do
 
     assert state_payload == %{
              "generated_at" => state_payload["generated_at"],
+             "repo" => %{"name" => "example/repo", "url" => "https://github.com/example/repo"},
              "counts" => %{"running" => 1, "retrying" => 1},
              "running" => [
                %{
@@ -444,6 +445,7 @@ defmodule SymphonyElixir.ExtensionsTest do
     assert state_payload ==
              %{
                "generated_at" => state_payload["generated_at"],
+               "repo" => %{"name" => "example/repo", "url" => "https://github.com/example/repo"},
                "error" => %{"code" => "snapshot_unavailable", "message" => "Snapshot unavailable"}
              }
 
@@ -466,6 +468,7 @@ defmodule SymphonyElixir.ExtensionsTest do
     assert timeout_payload ==
              %{
                "generated_at" => timeout_payload["generated_at"],
+               "repo" => %{"name" => "example/repo", "url" => "https://github.com/example/repo"},
                "error" => %{"code" => "snapshot_timeout", "message" => "Snapshot timed out"}
              }
   end
@@ -533,6 +536,8 @@ defmodule SymphonyElixir.ExtensionsTest do
 
     {:ok, view, html} = live(build_conn(), "/")
     assert html =~ "Operations Dashboard"
+    assert html =~ "Runner repo"
+    assert html =~ "example/repo"
     assert html =~ "MT-HTTP"
     assert html =~ "MT-RETRY"
     assert html =~ "rendered"
@@ -599,6 +604,8 @@ defmodule SymphonyElixir.ExtensionsTest do
     )
 
     {:ok, _view, html} = live(build_conn(), "/")
+    assert html =~ "Runner repo"
+    assert html =~ "example/repo"
     assert html =~ "Snapshot unavailable"
     assert html =~ "snapshot_unavailable"
   end

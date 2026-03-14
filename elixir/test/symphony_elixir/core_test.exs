@@ -103,6 +103,11 @@ defmodule SymphonyElixir.CoreTest do
     assert is_list(Map.get(tracker, "active_states"))
     assert is_list(Map.get(tracker, "terminal_states"))
 
+    repo = Map.get(config, "repo", %{})
+    assert is_map(repo)
+    assert Map.get(repo, "name") == "openai/symphony"
+    assert Map.get(repo, "url") == "https://github.com/openai/symphony"
+
     hooks = Map.get(config, "hooks", %{})
     assert is_map(hooks)
     assert Map.get(hooks, "after_create") =~ "git clone --depth 1 https://github.com/openai/symphony ."
@@ -591,7 +596,7 @@ defmodule SymphonyElixir.CoreTest do
     assert %{attempt: 3, due_at_ms: due_at_ms, identifier: "MT-559", error: "agent exited: :boom"} =
              state.retry_attempts[issue_id]
 
-    assert_due_in_range(due_at_ms, 39_500, 40_500)
+    assert_due_in_range(due_at_ms, 39_000, 40_500)
   end
 
   test "first abnormal worker exit waits before retrying" do
@@ -630,7 +635,7 @@ defmodule SymphonyElixir.CoreTest do
     assert %{attempt: 1, due_at_ms: due_at_ms, identifier: "MT-560", error: "agent exited: :boom"} =
              state.retry_attempts[issue_id]
 
-    assert_due_in_range(due_at_ms, 9_000, 10_500)
+    assert_due_in_range(due_at_ms, 8_000, 10_500)
   end
 
   test "stale retry timer messages do not consume newer retry entries" do

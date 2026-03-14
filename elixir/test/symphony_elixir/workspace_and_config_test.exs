@@ -726,6 +726,8 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
 
     write_workflow_file!(Workflow.workflow_file_path(),
       workspace_root: nil,
+      repo_name: nil,
+      repo_url: nil,
       max_concurrent_agents: nil,
       codex_approval_policy: nil,
       codex_thread_sandbox: nil,
@@ -742,6 +744,8 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
     assert config.tracker.api_key == nil
     assert config.tracker.project_slug == nil
     assert config.workspace.root == Path.join(System.tmp_dir!(), "symphony_workspaces")
+    assert config.repo.name == nil
+    assert config.repo.url == nil
     assert config.agent.max_concurrent_agents == 10
     assert config.codex.command == "codex app-server"
 
@@ -878,33 +882,107 @@ defmodule SymphonyElixir.WorkspaceAndConfigTest do
     assert Config.settings!().codex.command == "codex app-server"
   end
 
+  test "config reads explicit repo metadata from the workflow" do
+    write_workflow_file!(Workflow.workflow_file_path(),
+      repo_name: "switchboard-live/pin-infra",
+      repo_url: "https://github.com/switchboard-live/pin-infra"
+    )
+
+    config = Config.settings!()
+
+    assert config.repo.name == "switchboard-live/pin-infra"
+    assert config.repo.url == "https://github.com/switchboard-live/pin-infra"
+  end
+
+  test "config infers repo metadata from the clone hook when repo fields are unset" do
+    write_workflow_file!(Workflow.workflow_file_path(),
+      repo_name: nil,
+      repo_url: nil,
+      hook_after_create: "git clone --origin origin https://github.com/switchboard-live/stream.git ."
+    )
+
+    config = Config.settings!()
+
+    assert config.repo.name == "switchboard-live/stream"
+    assert config.repo.url == "https://github.com/switchboard-live/stream.git"
+  end
+
+  test "config drops blank or unresolved repo metadata and ignores non-github clone hooks" do
+    missing_repo_name_env_var = "SYMP_MISSING_REPO_NAME_#{System.unique_integer([:positive])}"
+    previous_repo_name = System.get_env(missing_repo_name_env_var)
+
+    System.delete_env(missing_repo_name_env_var)
+
+    on_exit(fn ->
+      restore_env(missing_repo_name_env_var, previous_repo_name)
+    end)
+
+    write_workflow_file!(Workflow.workflow_file_path(),
+      repo_name: "$#{missing_repo_name_env_var}",
+      repo_url: "   ",
+      hook_after_create: "git clone ../relative-source ."
+    )
+
+    config = Config.settings!()
+
+    assert config.repo.name == nil
+    assert config.repo.url == nil
+  end
+
+  test "config preserves explicit repo urls even when the repo name cannot be inferred" do
+    write_workflow_file!(Workflow.workflow_file_path(),
+      repo_name: nil,
+      repo_url: "https://github.com",
+      hook_after_create: nil
+    )
+
+    config = Config.settings!()
+
+    assert config.repo.name == nil
+    assert config.repo.url == "https://github.com"
+  end
+
   test "config resolves $VAR references for env-backed secret and path values" do
     workspace_env_var = "SYMP_WORKSPACE_ROOT_#{System.unique_integer([:positive])}"
     api_key_env_var = "SYMP_LINEAR_API_KEY_#{System.unique_integer([:positive])}"
+    repo_name_env_var = "SYMP_REPO_NAME_#{System.unique_integer([:positive])}"
+    repo_url_env_var = "SYMP_REPO_URL_#{System.unique_integer([:positive])}"
     workspace_root = Path.join("/tmp", "symphony-workspace-root")
     api_key = "resolved-secret"
+    repo_name = "switchboard-live/stream"
+    repo_url = "https://github.com/switchboard-live/stream"
     codex_bin = Path.join(["~", "bin", "codex"])
 
     previous_workspace_root = System.get_env(workspace_env_var)
     previous_api_key = System.get_env(api_key_env_var)
+    previous_repo_name = System.get_env(repo_name_env_var)
+    previous_repo_url = System.get_env(repo_url_env_var)
 
     System.put_env(workspace_env_var, workspace_root)
     System.put_env(api_key_env_var, api_key)
+    System.put_env(repo_name_env_var, repo_name)
+    System.put_env(repo_url_env_var, repo_url)
 
     on_exit(fn ->
       restore_env(workspace_env_var, previous_workspace_root)
       restore_env(api_key_env_var, previous_api_key)
+      restore_env(repo_name_env_var, previous_repo_name)
+      restore_env(repo_url_env_var, previous_repo_url)
     end)
 
     write_workflow_file!(Workflow.workflow_file_path(),
       tracker_api_token: "$#{api_key_env_var}",
       workspace_root: "$#{workspace_env_var}",
+      repo_name: "$#{repo_name_env_var}",
+      repo_url: "$#{repo_url_env_var}",
       codex_command: "#{codex_bin} app-server"
     )
 
     config = Config.settings!()
     assert config.tracker.api_key == api_key
     assert config.workspace.root == Path.expand(workspace_root)
+    assert config.repo.name == repo_name
+    assert config.repo.url == repo_url
     assert config.codex.command == "#{codex_bin} app-server"
   end
 

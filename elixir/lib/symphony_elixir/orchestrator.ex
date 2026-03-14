@@ -453,7 +453,13 @@ defmodule SymphonyElixir.Orchestrator do
       |> terminate_running_issue(issue_id, false)
       |> schedule_issue_retry(issue_id, next_attempt, %{
         identifier: identifier,
-        issue_url: get_in(running_entry, [:issue, :url]),
+        issue_url:
+          running_entry
+          |> Map.get(:issue)
+          |> case do
+            nil -> nil
+            issue -> Map.get(issue, :url)
+          end,
         error: "stalled for #{elapsed_ms}ms without codex activity"
       })
     else
